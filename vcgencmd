@@ -1,0 +1,21 @@
+#!/bin/bash
+if [ "$1" = "get_throttled" ]; then
+  value=0
+  cur_throttle=$(cat /sys/class/thermal/cooling_device0/cur_state)
+  if [ $cur_throttle -ne 0 ]; then
+    value=$(expr $value + 4)
+  fi
+  temp=$(cat /sys/class/thermal/thermal_zone0/temp)
+  tempLimit=$(cat /sys/class/thermal/thermal_zone0/trip_point_0_temp)
+  if [ $temp -ge $tempLimit ]; then
+    value=$(expr $value + 8)
+  fi
+  timeInNonZeroState=$(cat /sys/class/thermal/cooling_device0/stats/time_in_state_ms | awk '$1!="state0"{x+=$2};END{print x}')
+  if [ $timeInNonZeroState -ne 0 ]; then
+    value=$(expr $value + 131072)
+  fi
+  printf "throttled=0x%x\n" $value
+else
+  echo $* >> /tmp/vcgencmd.unknown
+fi
+exit 0
